@@ -214,11 +214,11 @@ def run_gam(df):
     n_splines = 10
     terms = reduce(lambda a, b: a + b, [s(i, n_splines=n_splines) for i in range(X_train.shape[1])])
     gam = LinearGAM(terms)
-    gam.gridsearch(X_train.values, y_train.values)
+    gam.gridsearch(X_train.values.astype(float), y_train.values.astype(float))
 
     # Step 5: Predict & Evaluate
-    y_pred_train = gam.predict(X_train.values)
-    y_pred_test = gam.predict(X_test.values)
+    y_pred_train = gam.predict(X_train.values.astype(float))
+    y_pred_test = gam.predict(X_test.values.astype(float))
 
     report = pd.DataFrame({
         "Metric": ["R²", "MAE", "MSE", "RMSE"],
@@ -293,11 +293,11 @@ def run_all_models(df):
     from functools import reduce
     terms = reduce(lambda a, b: a + b, [s(i, n_splines=10) for i in range(X_train.shape[1])])
     gam = LinearGAM(terms)
-    gam.gridsearch(X_train.values, y_train.values)
-    y_pred = gam.predict(X_test.values)
+    gam.gridsearch(X_train.values.astype(float), y_train.values.astype(float))
+    y_pred = gam.predict(X_test.values.astype(float))
     results.append(pd.DataFrame({
         "Model": "GAM",
-        "Actual": y_test.values,
+        "Actual": y_test.values.astype(float),
         "Predicted": y_pred
     }))
 
@@ -307,7 +307,7 @@ def run_all_models(df):
 def make_prediction_df(model_name, X_test, y_test, y_pred):
     return pd.DataFrame({
         "Model": model_name,
-        "Actual": y_test.values,
+        "Actual": y_test.values.astype(float),
         "Predicted": y_pred
     })
 
