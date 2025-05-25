@@ -27,22 +27,6 @@ def prepare_data(df):
     valid_idx = X.dropna().index.intersection(y.dropna().index)
     return X.loc[valid_idx], y.loc[valid_idx]
 
-# --- Streamlit App ---
-st.title("Occupancy Rate Multi-Model Prediction Platform")
-
-uploaded_file = st.file_uploader("Upload your dataset (CSV)", type=["csv"])
-
-if uploaded_file:
-    mode = None
-    df = pd.read_csv(uploaded_file)
-    st.write("Preview of Uploaded Data:")
-    st.dataframe(df.head())
-    mode = st.radio("Select Mode", ["Run Single Model", "Run All Models"])
-
-else:
-    st.info("Please upload a CSV file to start.")
-# --- Streamlit App ---
-
 # columns excluded from modeling input
 excluded_cols = [
     'scode', 'month_of_dtmonth', 'occ', 'total',
@@ -340,80 +324,99 @@ def export_results_to_csv(df):
 
 filename = f"occupancy_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
 
-if mode == "Run Single Model":
-    selected_model = st.selectbox("Select model to run", ["Linear Regression", "Random Forest", "XGBoost", "GAM"])
+# --- Streamlit App ---
+st.title("Occupancy Rate Multi-Model Prediction Platform")
+
+uploaded_file = st.file_uploader("Upload your dataset (CSV)", type=["csv"])
+
+if uploaded_file:
+    mode = None
+    df = pd.read_csv(uploaded_file)
+    st.write("Preview of Uploaded Data:")
+    st.dataframe(df.head())
     
-    if st.button("Run Selected Model"):
-        with st.spinner(f"Training {selected_model} model..."):
-            if selected_model == "Linear Regression":
-                coefs, metrics_report, pval_output, X_test, y_test, y_pred_test = run_linear_regression(df)
-                st.subheader("Coefficients")
-                st.dataframe(coefs)
-                st.subheader("Evaluation")
-                st.dataframe(metrics_report)
-                st.subheader("P-values")
-                for line in pval_output:
-                    st.text(line)
-                single_model_df = make_prediction_df("Linear Regression", X_test, y_test, y_pred_test)
-                csv_data = export_results_to_csv(single_model_df)
+    mode = st.radio("Select Mode", ["Run Single Model", "Run All Models"])
 
-                st.download_button(
-                    label="Download Linear Regression Predictions (CSV)",
-                    data=csv_data,
-                    file_name=f"linear_regression_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                    )
-            elif selected_model == "Random Forest":
-                rf_report, rf_importances, X_test, y_test, y_pred_test = run_random_forest(df)
-                st.dataframe(rf_report)
-                st.bar_chart(rf_importances.sort_values(ascending=False))
-                single_model_df = make_prediction_df("Random Forest", X_test, y_test, y_pred_test)
-                csv_data = export_results_to_csv(single_model_df)
+    if mode == "Run Single Model":
+        
+        selected_model = st.selectbox("Select model to run", ["Linear Regression", "Random Forest", "XGBoost", "GAM"])
 
-                st.download_button(
-                    label="Download Random Forest Predictions (CSV)",
-                    data=csv_data,
-                    file_name=f"random_forest_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                    )
+        if st.button("Run Selected Model"):
+            
+            with st.spinner(f"Training {selected_model} model..."):
+                if selected_model == "Linear Regression":
+                    coefs, metrics_report, pval_output, X_test, y_test, y_pred_test = run_linear_regression(df)
+                    st.subheader("Coefficients")
+                    st.dataframe(coefs)
+                    st.subheader("Evaluation")
+                    st.dataframe(metrics_report)
+                    st.subheader("P-values")
+                    for line in pval_output:
+                        st.text(line)
+                    single_model_df = make_prediction_df("Linear Regression", X_test, y_test, y_pred_test)
+                    csv_data = export_results_to_csv(single_model_df)
 
-            elif selected_model == "XGBoost":
-                xgb_report, xgb_importances, X_test, y_test, y_pred_test = run_xgboost(df)
-                st.dataframe(xgb_report)
-                st.bar_chart(xgb_importances.sort_values(ascending=False))
-                single_model_df = make_prediction_df("XGBoost", X_test, y_test, y_pred_test)
-                csv_data = export_results_to_csv(single_model_df)
+                    st.download_button(
+                        label="Download Linear Regression Predictions (CSV)",
+                        data=csv_data,
+                        file_name=f"linear_regression_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                        )
+                elif selected_model == "Random Forest":
+                    rf_report, rf_importances, X_test, y_test, y_pred_test = run_random_forest(df)
+                    st.dataframe(rf_report)
+                    st.bar_chart(rf_importances.sort_values(ascending=False))
+                    single_model_df = make_prediction_df("Random Forest", X_test, y_test, y_pred_test)
+                    csv_data = export_results_to_csv(single_model_df)
 
-                st.download_button(
-                    label="Download XGBoost Predictions (CSV)",
-                    data=csv_data,
-                    file_name=f"xgboost_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                    )
+                    st.download_button(
+                        label="Download Random Forest Predictions (CSV)",
+                        data=csv_data,
+                        file_name=f"random_forest_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                        )
 
-            elif selected_model == "GAM":
-                gam_report, fig_partial, X_test, y_test, y_pred_test = run_gam(df)
-                st.dataframe(gam_report)
-                st.pyplot(fig_partial)
-                single_model_df = make_prediction_df("GAM", X_test, y_test, y_pred_test)
-                csv_data = export_results_to_csv(single_model_df)
+                elif selected_model == "XGBoost":
+                    xgb_report, xgb_importances, X_test, y_test, y_pred_test = run_xgboost(df)
+                    st.dataframe(xgb_report)
+                    st.bar_chart(xgb_importances.sort_values(ascending=False))
+                    single_model_df = make_prediction_df("XGBoost", X_test, y_test, y_pred_test)
+                    csv_data = export_results_to_csv(single_model_df)
 
-                st.download_button(
-                    label="Download GAM Predictions (CSV)",
-                    data=csv_data,
-                    file_name=f"gam_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                    )
+                    st.download_button(
+                        label="Download XGBoost Predictions (CSV)",
+                        data=csv_data,
+                        file_name=f"xgboost_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                        )
+
+                elif selected_model == "GAM":
+                    gam_report, fig_partial, X_test, y_test, y_pred_test = run_gam(df)
+                    st.dataframe(gam_report)
+                    st.pyplot(fig_partial)
+                    single_model_df = make_prediction_df("GAM", X_test, y_test, y_pred_test)
+                    csv_data = export_results_to_csv(single_model_df)
+
+                    st.download_button(
+                        label="Download GAM Predictions (CSV)",
+                        data=csv_data,
+                        file_name=f"gam_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv"
+                        )
                 
-elif mode == "Run All Models":
-    if st.button("Run All Models and Export"):
-        final_df = run_all_models(df)
-        st.dataframe(final_df)
+    elif mode == "Run All Models":
+        if st.button("Run All Models and Export"):
+            final_df = run_all_models(df)
+            st.dataframe(final_df)
 
-        csv_data = export_results_to_csv(final_df)
-        st.download_button(
-        label="Download All Model Predictions (CSV)",
-        data=csv_data,
-        file_name=f"all_model_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-        mime="text/csv"
+            csv_data = export_results_to_csv(final_df)
+            st.download_button(
+            label="Download All Model Predictions (CSV)",
+            data=csv_data,
+            file_name=f"all_model_predictions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
 )
+
+else:
+    st.info("Please upload a CSV file to start.")
+# --- Streamlit App ---
