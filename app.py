@@ -195,44 +195,42 @@ def run_xgboost(df):
 
 
 def run_gam(df):
-    from pygam import LinearGAM, s
-
-    # Step 1: Feature/target selection
+    
+    # Step 1: Select features
     X = df.drop(columns=excluded_cols, errors='ignore')
     y = df['occupancy_rate']
 
-    # Step 2: Combine and clean
+    # Step 2: Clean NaNs/Infs
     df_gam = X.copy()
     df_gam['occupancy_rate'] = y
     df_gam = df_gam.replace([np.inf, -np.inf], np.nan).dropna()
 
-    # Step 3: Convert to float64 and check variance
-    X_clean = df_gam.drop(columns='occupancy_rate').apply(pd.to_numeric, errors='coerce').astype(np.float64)
-    y_clean = pd.to_numeric(df_gam['occupancy_rate'], errors='coerce').astype(np.float64)
+    X_clean = df_gam.drop(columns='occupancy_rate').apply(pd.to_numeric, errors='coerce').astype(float)
+    y_clean = pd.to_numeric(df_gam['occupancy_rate'], errors='coerce').astype(float)
 
-    # Remove columns with zero variance
-    zero_var_cols = X_clean.columns[X_clean.nunique() <= 1]
-    X_clean = X_clean.drop(columns=zero_var_cols)
-    selected_cols = X_clean.columns.tolist()
-
-    # Step 4: Align and clean again
     X_clean, y_clean = X_clean.align(y_clean, join='inner', axis=0)
     X_clean = X_clean.dropna()
     y_clean = y_clean.loc[X_clean.index]
 
-    # Step 5: Train-test split
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_clean, y_clean, test_size=0.2, random_state=42
-    )
+    # Step 3: Train/Test split
+    X_train, X_test, y_train, y_test = train_test_split(X_clean, y_clean, test_size=0.2, random_state=42)
 
-    # Step 6: GAM model
-    terms = sum([s(i, n_splines=10) for i in range(X_train.shape[1])])
+    # Step 4: Define GAM model
+    n_splines = 10
+
+    # Debug: Optional — Show which features are included
+    st.write("GAM input features:", X_train.columns.tolist())
+
+    if X_train.shape[1] == 0:
+        raise ValueError("No features remaining after preprocessing. Please check input data or excluded_cols.")
+
+    terms = reduce(lambda a, b: a + b, [s(i, n_splines=n_splines) for i in range(X_train.shape[1])])
     gam = LinearGAM(terms)
-    gam.gridsearch(X_train.values, y_train.values)
+    gam.gridsearch(X_train.values.astype(float), y_train.values.astype(float))
 
-    # Step 7: prediction and evaluation
-    y_pred_train = gam.predict(X_train.values)
-    y_pred_test = gam.predict(X_test.values)
+    # Step 5: Predict & Evaluate
+    y_pred_train = gam.predict(X_train.values.astype(float))
+    y_pred_test = gam.predict(X_test.values.astype(float))
 
     report = pd.DataFrame({
         "Metric": ["R²", "MAE", "MSE", "RMSE"],
@@ -250,16 +248,16 @@ def run_gam(df):
         ]
     })
 
-    # Step 8: Partial Dependence Plot
-    fig_pd, axes = plt.subplots(math.ceil(len(selected_cols) / 3), 3, figsize=(18, 5 * math.ceil(len(selected_cols)/3)))
+    # Step 6: Plot partial dependence
+    fig_pd, axes = plt.subplots(math.ceil(len(X_train.columns) / 3), 3, figsize=(18, 5 * math.ceil(len(X_train.columns) / 3)))
     axes = axes.flatten()
-    for i, term in enumerate(selected_cols):
+    for i, term in enumerate(X_train.columns):
         XX = gam.generate_X_grid(term=i)
         pd_mean, pd_ci = gam.partial_dependence(term=i, X=XX, width=0.95)
-        axes[i].plot(XX[:, i], pd_mean)
-        axes[i].plot(XX[:, i], pd_ci[:, 0], 'r--')
+        axes[i].plot(XX[:, i], pd_mean, label='Partial Effect')
+        axes[i].plot(XX[:, i], pd_ci[:, 0], 'r--', label='95% CI' if i == 0 else "")
         axes[i].plot(XX[:, i], pd_ci[:, 1], 'r--')
-        axes[i].set_title(f'{term} vs occupancy_rate')
+        axes[i].set_title(f'{term} vs. occupancy_rate')
         axes[i].set_xlabel(term)
         axes[i].set_ylabel('Partial Effect')
         axes[i].grid(True)
@@ -267,6 +265,7 @@ def run_gam(df):
     plt.close(fig_pd)
 
     return report, fig_pd, X_test, y_test, y_pred_test
+
 
 
 def run_all_models(df):
