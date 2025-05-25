@@ -203,9 +203,13 @@ def run_gam(df):
     df_gam = X.copy()
     df_gam['occupancy_rate'] = y
     df_gam = df_gam.replace([np.inf, -np.inf], np.nan).dropna()
-    X_clean = df_gam.drop(columns='occupancy_rate')
-    y_clean = df_gam['occupancy_rate']
+    X_clean = df_gam.drop(columns='occupancy_rate').apply(pd.to_numeric, errors='coerce').astype(float)
+    y_clean = pd.to_numeric(df_gam['occupancy_rate'], errors='coerce').astype(float)
     selected_cols = X_clean.columns.tolist()
+
+    X_clean, y_clean = X_clean.align(y_clean, join='inner', axis=0)
+    X_clean = X_clean.dropna()
+    y_clean = y_clean.loc[X_clean.index]
 
     # Step 3: Train/Test split
     X_train, X_test, y_train, y_test = train_test_split(X_clean, y_clean, test_size=0.2, random_state=42)
