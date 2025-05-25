@@ -132,13 +132,13 @@ def run_random_forest(df):
             r2_score(y_train, y_pred_train),
             mean_absolute_error(y_train, y_pred_train),
             mean_squared_error(y_train, y_pred_train),
-            mean_squared_error(y_train, y_pred_train, squared=False)
+            root_mean_squared_error(y_train, y_pred_train)
         ],
         "Testing": [
             r2_score(y_test, y_pred_test),
             mean_absolute_error(y_test, y_pred_test),
             mean_squared_error(y_test, y_pred_test),
-            mean_squared_error(y_test, y_pred_test, squared=False)
+            root_mean_squared_error(y_test, y_pred_test)
         ]
     })
 
@@ -177,14 +177,14 @@ def run_xgboost(df):
             r2_score(y_train, y_pred_train),
             mean_absolute_error(y_train, y_pred_train),
             mean_squared_error(y_train, y_pred_train),
-            mean_squared_error(y_train, y_pred_train, squared=False)
+            root_mean_squared_error(y_train, y_pred_train)
             
         ],
         "Testing": [
             r2_score(y_test, y_pred_test),
             mean_absolute_error(y_test, y_pred_test),
             mean_squared_error(y_test, y_pred_test),
-            mean_squared_error(y_test, y_pred_test, squared=False)
+            root_mean_squared_error(y_test, y_pred_test)
         ]
     })
 
