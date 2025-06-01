@@ -58,3 +58,5 @@ if uploaded_file is not None:
             file_name="predicted_results.csv",
             mime="text/csv"
         )
+st.write("Expected columns:", model.feature_names_in_ if hasattr(model, 'feature_names_in_') else features)
+st.write("Uploaded file columns:", df[features].columns.tolist())
